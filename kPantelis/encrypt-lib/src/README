@@ -1,0 +1,82 @@
+Code developed under HPY417 - Systems and Information Security, ECE TUC 2020-21 Winter Sem.
+
+
+	Konstantinos Pantelis -   	LAB41446433
+	2015030070
+	Undergrad. Student@ECE TUC
+	github.com/dasApfel [code will be under "securious-tuc"]
+	
+
+									** BASICS **
+
+- All function and constant declarations are held under "rsa.h", "util.h".
+- The implementation of the afforementioned functions can be found in ".c" files.
+- Source code developed in Unbuntu Linux 19.10 [x86-64 architecture].
+- All functions have extensive commenting either on declaration ".h" or in implementation file ".c"
+- If questions about any technique arrise, github or kpantelis@isc.tuc.gr can be used for communicating.
+
+				** ALGORITHMS - TECHNIQUES USED [Minor utility functions will not be analyzed] **
+
+INPUT:
+
+- Non POSIX complimentation about input, yet the whole process is working with given prerequisites.
+- Probably will modify as a sdie project later.
+TASK A: [Key derivation]
+
+- A pool of prime numbers can be generated calling "sieve_of_eratosthenes" defined in "rsa.h", implemented in "rsa.c".
+- Afforementioned pool will be used from "prime_fishing" [also implemented in "rsa.c"] to generate primes p,q.
+- Along with those, other useful math realtions will be generated [see also "choose_e"].
+- The last part in key generation which actually is the choose of a proper e might be faulty concerning e's existance. Therefore the whole process [pool initialization, prime "fishing", e pick]
+is trapped until e satisfies conditions.
+
+TASK B: [Data encryption]
+
+- As mentioned above imput data and the process of gathering them are not compiling to POSIX guidelines for files, yet the whole process (which enables functions from assign_1, assign_2) is working perfectly under Linux for files given.
+- The encryption takes place via the "rsa_encrypt" and "encrypt" functions denoted in "rsa".h / .c and is actually a modular exponentiation (via the "mod_expo" also implemented in "rsa.c", denoted in "rsa.h") of each character with the pubic key's (prefix,postfix) [aka] (n,d).
+- Afforementioned exponentiation is implemented in a recursive manner.
+
+
+TASK C: [Data decryption]
+
+- Exact reverse process of encryption with it's  only difference to be the key under which re "reverse exponentiation" happens.
+- To be more specific the decryption's modular expo.. happens among each byte of the <sizeof(size_t)*plaintext_len> quantinty and (n,e) which depict the ajacent pair (or the pair of the adjacent key).
+- For this to work the adjacent key need to be provided, this means that if in the encryption process private key was used, public should be used for decrypting and vice versa.
+- Concerning the souce code the whole process utilises "rsa_decrypt", "decrypt", "mod_expo" (denoted in "rsa.c", "rsa.h") for the decryption to take place and custom I/O functions denoted under "util" .c/ .h .
+
+
+TASK D:[Tool usage]
+
+- Everyting suggested under "Assignment3.pdf" can be found in "../files/ " directory.
+
+
+COMMENTING:
+
+- Things went kinda smooth on this one in contrast with "assign_2" which took me 5 more days [after the given submission date] to finish due on "ecb vs ebp" key generation.
+- I kinda prefer writing tools on my own afterall.. 
+ 
+
+								** COMPILATION  -  TESTING AND OTHERS. **
+
+-Type "make all" to compile.
+-Type "make clean" to clean the build.
+-Usage: 
+	
+	"./encrypt-lib -h" is your friend.
+
+-Example:
+	"./encrypt-lib -i ../files/decryptme.txt -o ../files/decrypted.txt -k ../files/public_key.key -d"
+
+	Will decrypt a file located in "files" dir, encrypted with private_key.key (which you should provide or generate.. :D) and store the resulting plaintext in  ../files/decrypted.txt 
+
+
+
+
+								** LICENSE **
+- Common MIT license .
+
+
+							** WARNINGS **
+
+- These forms of encryption even if secure are not unbreakable therefore cannot be thought as a "secure way of comms" or a "secure comms line".
+- Strong suggestion when running above: USE A LINUX BASED MACHINE.
+

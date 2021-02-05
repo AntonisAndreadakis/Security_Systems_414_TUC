@@ -1,0 +1,20 @@
+CC = gcc
+CFLAGS = -std=c99
+RMFLAGS = -f
+NAME = ciphers
+NAMEC = cipher
+
+#Makefile for cipher
+$(NAME): cipher_main.o ciphers.o
+	$(CC) $(CFLAGS) -o $(NAME) cipher_main.o ciphers.o
+
+cipher_main.o: cipher_main.c ciphers.h
+	$(CC) $(CFLAGS) -c cipher_main.c
+
+ciphers.o: ciphers.c ciphers.h
+	$(CC) $(CFLAGS) -c ciphers.c
+
+test: clean $(NAME)
+
+clean:
+	rm $(RMFLAGS) $(NAMEC) *.o core
