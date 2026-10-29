@@ -13,8 +13,15 @@ RUN mkdir -p /tmp/deps && \
     dpkg-deb --extract pcap.deb /tmp/deps && \
     dpkg-deb --extract pcap-dev.deb /tmp/deps && \
     dpkg-deb --extract dbus.deb /tmp/deps
+# pip.pyz is pypa's own rolling "latest pip" bootstrap bundle, so its hash
+# changes on every pip release; this pins the hash seen when this Dockerfile
+# was last updated (2026-10-29) as a check against a corrupted or tampered
+# download, not as a long-term version pin. A future pip release will make
+# the build fail closed here (sha256sum mismatch) rather than run an
+# unverified artifact; update the hash from a fresh download when that happens.
 RUN curl --fail --location --proto '=https' --tlsv1.2 --max-time 90 \
       https://bootstrap.pypa.io/pip/pip.pyz -o /tmp/pip.pyz && \
+    echo 'e5ef64ef63ff89a746014ad81658b76c1940385fdcdbc4fcbfa6e3ef1887352d  /tmp/pip.pyz' | sha256sum -c - && \
     python3 /tmp/pip.pyz --isolated install --disable-pip-version-check \
       --no-cache-dir --only-binary=:all: --target /tmp/pythondeps \
       --requirement /tmp/assignment-requirements.txt

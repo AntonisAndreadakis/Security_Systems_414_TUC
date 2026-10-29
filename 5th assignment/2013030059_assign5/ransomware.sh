@@ -45,7 +45,7 @@ die() {
 }
 
 # Refuse to run as (or effectively as) root.
-if [ "$(id -u)" = 0 ] || [ -w / ]; then
+if [[ "$(id -u)" = 0 ]] || [[ -w / ]]; then
 	die "No root is allowed!"
 fi
 
@@ -67,25 +67,25 @@ while getopts ":n:d:p:exh" opt; do
 	esac
 done
 
-if [ -z "$dir" ]; then
+if [[ -z "$dir" ]]; then
 	usage
 	die "A directory (-d) is required."
 fi
-if [ ! -d "$dir" ]; then
+if [[ ! -d "$dir" ]]; then
 	die "Not a directory: $dir"
 fi
 
 # Prefer logger.so next to this script (built by `make logger` in this
 # directory); fall back to running unaudited if it is not there yet.
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-if [ -f "$script_dir/logger.so" ]; then
+if [[ -f "$script_dir/logger.so" ]]; then
 	export LD_PRELOAD="$script_dir/logger.so"
 else
 	echo "Warning: $script_dir/logger.so not found; running without the access-control logger." >&2
 fi
 
 create_files() {
-	if ! [[ "$count" =~ ^[0-9]+$ ]] || [ "$count" -eq 0 ]; then
+	if ! [[ "$count" =~ ^[0-9]+$ ]] || [[ "$count" -eq 0 ]]; then
 		die "-n requires a positive integer."
 	fi
 	local i
@@ -96,11 +96,11 @@ create_files() {
 }
 
 encrypt_dir() {
-	[ -n "$pass" ] || die "-e requires -p <password>."
+	[[ -n "$pass" ]] || die "-e requires -p <password>."
 	shopt -s nullglob
 	local file encrypted=0 failed=0
 	for file in "$dir"/*; do
-		[ -f "$file" ] || continue
+		[[ -f "$file" ]] || continue
 		case "$file" in
 		*.encrypt) continue ;; # do not re-encrypt our own output
 		esac
@@ -114,15 +114,15 @@ encrypt_dir() {
 		fi
 	done
 	echo "Encrypted $encrypted file(s), $failed failure(s), in $dir"
-	[ "$failed" -eq 0 ]
+	[[ "$failed" -eq 0 ]]
 }
 
 decrypt_dir() {
-	[ -n "$pass" ] || die "-x requires -p <password>."
+	[[ -n "$pass" ]] || die "-x requires -p <password>."
 	shopt -s nullglob
 	local file original decrypted=0 failed=0
 	for file in "$dir"/*.encrypt; do
-		[ -f "$file" ] || continue
+		[[ -f "$file" ]] || continue
 		original="${file%.encrypt}"
 		if openssl enc -d -aes-256-ecb -in "$file" -out "$original" -k "$pass"; then
 			rm -f -- "$file"
@@ -134,12 +134,12 @@ decrypt_dir() {
 		fi
 	done
 	echo "Decrypted $decrypted file(s), $failed failure(s), in $dir"
-	[ "$failed" -eq 0 ]
+	[[ "$failed" -eq 0 ]]
 }
 
 case "$mode" in
 "")
-	if [ -n "$count" ]; then
+	if [[ -n "$count" ]]; then
 		create_files
 	else
 		usage

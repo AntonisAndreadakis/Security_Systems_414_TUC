@@ -8,7 +8,7 @@ set -u
 # points this script at the old, pre-cleanup layout.
 scriptDir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 dataDir="$scriptDir"
-if [ ! -e "$dataDir/domainNames.txt" ] && [ -e "$scriptDir/../domainNames.txt" ]; then
+if [[ ! -e "$dataDir/domainNames.txt" ]] && [[ -e "$scriptDir/../domainNames.txt" ]]; then
     dataDir="$scriptDir/.."
 fi
 domainNames="$dataDir/domainNames.txt"
@@ -26,7 +26,7 @@ requireCommand() {
 }
 
 requireRoot() {
-    [ "$EUID" -eq 0 ] || fail "this option requires root privileges."
+    [[ "$EUID" -eq 0 ]] || fail "this option requires root privileges."
 }
 
 validIPv4() {
@@ -58,7 +58,7 @@ printHelp() {
 resolveDomains() {
     local domain ip resolver temporaryFile
 
-    [ -r "$domainNames" ] || fail "cannot read '$domainNames'."
+    [[ -r "$domainNames" ]] || fail "cannot read '$domainNames'."
     requireCommand awk
     requireCommand sort
     requireCommand mktemp
@@ -72,16 +72,16 @@ resolveDomains() {
 
     temporaryFile=$(mktemp "${IPAddresses}.tmp.XXXXXX") || fail "cannot create a temporary file."
     trap 'rm -f -- "$temporaryFile"' EXIT
-    while IFS= read -r domain || [ -n "$domain" ]; do
+    while IFS= read -r domain || [[ -n "$domain" ]]; do
         domain=${domain%%#*}
         domain=${domain//$'\r'/}
         domain=${domain//[[:space:]]/}
-        [ -n "$domain" ] || continue
+        [[ -n "$domain" ]] || continue
         if [[ ! $domain =~ ^([[:alnum:]]([[:alnum:]-]*[[:alnum:]])?\.)+[[:alpha:]]{2,63}\.?$ ]]; then
             printf 'Warning: ignoring invalid domain: %s\n' "$domain" >&2
             continue
         fi
-        if [ "$resolver" = getent ]; then
+        if [[ "$resolver" = getent ]]; then
             while IFS= read -r ip; do
                 validIPv4 "$ip" && printf '%s\n' "$ip" >> "$temporaryFile"
             done < <(getent ahostsv4 "$domain" 2>/dev/null | awk '{print $1}')
@@ -93,7 +93,7 @@ resolveDomains() {
     done < "$domainNames"
 
     sort -u "$temporaryFile" -o "$temporaryFile"
-    [ -s "$temporaryFile" ] || fail "no domains resolved to IPv4 addresses."
+    [[ -s "$temporaryFile" ]] || fail "no domains resolved to IPv4 addresses."
     mv -- "$temporaryFile" "$IPAddresses" || fail "cannot replace '$IPAddresses'."
     trap - EXIT
     printf 'Wrote %s unique IPv4 addresses to %s.\n' "$(wc -l < "$IPAddresses")" "$IPAddresses"
@@ -112,12 +112,12 @@ configureIPs() {
 
     requireRoot
     requireCommand iptables
-    [ -r "$IPAddresses" ] || fail "cannot read '$IPAddresses'."
+    [[ -r "$IPAddresses" ]] || fail "cannot read '$IPAddresses'."
     # Validate the complete replacement before touching existing rules.
-    while IFS= read -r ip || [ -n "$ip" ]; do
+    while IFS= read -r ip || [[ -n "$ip" ]]; do
         ip=${ip%%#*}
         ip=${ip//[[:space:]]/}
-        [ -n "$ip" ] || continue
+        [[ -n "$ip" ]] || continue
         validIPv4 "$ip" || fail "invalid IPv4 address: $ip; no rules were changed."
         if [[ ! -v 'seen[$ip]' ]]; then
             addresses+=("$ip")
@@ -155,10 +155,10 @@ saveRules() {
 
 loadRules() {
     requireRoot
-    [ "${ADBLOCK_ALLOW_FULL_RESTORE:-0}" = 1 ] ||
+    [[ "${ADBLOCK_ALLOW_FULL_RESTORE:-0}" = 1 ]] ||
         fail "full firewall restore requires explicit ADBLOCK_ALLOW_FULL_RESTORE=1 approval."
     requireCommand iptables-restore
-    [ -s "$adblockRules" ] || fail "'$adblockRules' is missing or empty."
+    [[ -s "$adblockRules" ]] || fail "'$adblockRules' is missing or empty."
     iptables-restore --test < "$adblockRules" || fail "rules validation failed; nothing was loaded."
     iptables-restore < "$adblockRules" || fail "iptables-restore failed."
     printf 'Loaded firewall rules from %s.\n' "$adblockRules"
@@ -191,7 +191,7 @@ listRules() {
 }
 
 adBlock() {
-    [ "$#" -eq 1 ] || { printHelp >&2; return 1; }
+    [[ "$#" -eq 1 ]] || { printHelp >&2; return 1; }
     case $1 in
         -domains) resolveDomains && configureIPs ;;
         -ips) configureIPs ;;
