@@ -84,11 +84,26 @@ password `hpy414` and their respective key sizes. This answers Task F.4.
 `Hello HPY414`; the separate 107-byte encryptme file contains instructions
 and is not that expected plaintext.
 
-## Remaining submission and design limits
+## Task F deliverables
 
-Tests generate results in disposable copies. Existing historical submission
-output files have not all been regenerated on the host; check required Task F
-filenames and outputs before packaging.
+Regenerated with the built `assign_1` against the supplied fixtures:
+
+- F.1 `decryptme_256.txt` (176 bytes): `encryptme_256.txt` (171 bytes)
+  encrypted with a 256-bit key from password `TUC2013030059`.
+- F.2 `hpy414_encryptme_128.txt` (62 bytes): `hpy414_decryptme_128.txt`
+  decrypted with a 128-bit key from password `hpy414`; plaintext begins
+  "Hello HPY414".
+- F.3 `verifyme_128.txt` (240 bytes): `signme_128.txt` (216 bytes) signed
+  with a 128-bit key from password `TUC2013030059` (224-byte padded
+  ciphertext + 16-byte CMAC).
+- F.4: both `hpy414_verifyme_128.txt` and `hpy414_verifyme_256.txt` verify
+  successfully with password `hpy414` at their respective key sizes (see
+  "Verified results" above).
+
+The stray `encrypt128.txt`/`encrypt256.txt` (neither is a Task F filename)
+were moved to `archive/2nd assignment/2013030059_assign2/`.
+
+## Remaining design limits
 
 AES-ECB and SHA-1-based EVP_BytesToKey are retained for assignment compatibility.
 This format is not a production encryption design. Existing compiled binaries

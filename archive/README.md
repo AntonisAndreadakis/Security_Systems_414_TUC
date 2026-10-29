@@ -8,8 +8,8 @@ from `3d assignment/2013030059_assign3/rsa.c`.
 | Assignment | Moved here | Why |
 | --- | --- | --- |
 | 1 | `demo`, `demo.exe`, `demo.o`, `simple_crypto.o` | Stale 2020/2023 build output |
-| 2 | `assign_1`, `encrypt128.txt` | Stale binary; stray output not required by the brief |
-| 3 | `main.c`, `rsa.c`, `rsa.h`, `utils.c`, `utils.h`, `*.o`, `assign_3` | Superseded by `main_fixed.c` / `rsa_fixed.c` |
+| 2 | `assign_1`, `encrypt128.txt`, `encrypt256.txt` | Stale binary; stray outputs not required by the brief (the required `decryptme_256.txt` was regenerated instead) |
+| 3 | `main.c`, `rsa.c`, `rsa.h`, `utils.c`, `utils.h`, `*.o`, `assign_3`, `public.txt`, `private.txt` | Superseded by `main_fixed.c` / `rsa_fixed.c`; `public.txt`/`private.txt` held a corrupted key pair (modulus n=2/5) not used anywhere |
 | 4 | `acmonitor`, `test_aclog`, `logger.so`, `file_0`-`file_9`, `test1.txt`, `test2.txt`, `file_logging.log` | Stale binaries; leftovers of old test runs in the old log format |
 | 5 | `ac_system.py` and its four test files, `run_tests.sh`, `file0`-`file9`, `file_0`-`file_9`, `test.txt`, `test1.txt`, `acmonitor.c.encrypt`, `file_logging.log`, caches | Obsolete Python port; `run_tests.sh` preloads the legacy logger in place and can truncate files; test leftovers |
 | 6 | `monitor` | Stale binary |

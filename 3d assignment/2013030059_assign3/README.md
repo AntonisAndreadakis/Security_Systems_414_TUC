@@ -84,7 +84,23 @@ The required native `size_t` binary format is architecture/endian dependent;
 the supplied fixtures target 64-bit little-endian systems. Tiny keys, unpadded
 per-byte RSA, and no authentication make this an educational implementation only.
 
-Old `TUC2013030059_*` outputs remain historical and may be incorrect. Test results
-are generated in disposable directories; regenerate and review the required
-submission artifacts before packaging.
-	
+## Task D deliverables
+
+Regenerated with the built `assign_3` against `hpy414_public.key` /
+`hpy414_private.key`:
+
+- D.1 `TUC2013030059_encrypted_pub.txt` (376 bytes): `hpy414_encryptme_pub.txt`
+  (47 bytes) encrypted with `hpy414_public.key`.
+- D.2 `TUC2013030059_decrypted_pub.txt` (59 bytes): `hpy414_decryptme_pub.txt`
+  decrypted with `hpy414_public.key`; plaintext reads "This file was
+  successfully decrypted with the public key."
+- D.3 `TUC2013030059_encrypted_priv.txt` (384 bytes): `hpy414_encryptme_priv.txt`
+  (48 bytes) encrypted with `hpy414_private.key`.
+- D.4 `TUC2013030059_decrypted_priv.txt` (60 bytes): `hpy414_decryptme_priv.txt`
+  decrypted with `hpy414_private.key`; plaintext reads "This file was
+  successfully decrypted with the private key."
+
+`public.txt`/`private.txt` held a corrupted key pair (n=2 and n=5) left over
+from an earlier run; they were not used by Task D and were moved to
+`archive/3d assignment/2013030059_assign3/`.
+
