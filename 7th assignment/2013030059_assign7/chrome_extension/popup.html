@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Personal Adblock Lab</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 16px; min-width: 260px; }
+      h1 { font-size: 16px; margin: 0 0 10px; }
+      p { line-height: 1.4; }
+      button { padding: 8px 12px; cursor: pointer; }
+      #status { font-weight: 600; }
+      #error { color: #9b1c1c; }
+    </style>
+    <script src="popup.js" defer></script>
+  </head>
+  <body>
+    <h1>Personal Adblock Lab</h1>
+    <p>Κανόνες για <code>meteo.gr</code>, Taboola και χορηγούμενες αναρτήσεις Facebook: <span id="status" role="status">Έλεγχος…</span></p>
+    <button id="toggle" type="button" disabled>Αναμονή…</button>
+    <p id="error" role="alert" hidden></p>
+  </body>
+</html>

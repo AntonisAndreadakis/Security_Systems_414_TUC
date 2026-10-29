@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Assignment 7 - Personal Adblock Lab",
+  "version": "0.3.1",
+  "description": "Blocks selected ad requests and hides marked sponsored Facebook feed posts.",
+  "permissions": ["declarativeNetRequest", "storage"],
+  "action": {
+    "default_title": "Personal Adblock Lab",
+    "default_popup": "popup.html"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "taboola_images",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://facebook.com/*", "https://www.facebook.com/*"],
+      "js": ["facebook_filter.js"],
+      "css": ["facebook_filter.css"],
+      "run_at": "document_start"
+    }
+  ]
+}

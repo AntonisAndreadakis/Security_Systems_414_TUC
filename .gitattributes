@@ -1,0 +1,3 @@
+# Store every file byte-for-byte. Several .txt fixtures are binary ciphertext,
+# and shell scripts/C sources must keep LF endings for the Linux sandbox.
+* -text

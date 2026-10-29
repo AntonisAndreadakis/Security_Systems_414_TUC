@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "requestDomains": ["images.taboola.com"],
+      "resourceTypes": ["image"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "initiatorDomains": ["meteo.gr"],
+      "requestDomains": [
+        "taboola.com",
+        "static.adman.gr",
+        "x.grxchange.gr",
+        "securepubads.g.doubleclick.net",
+        "pagead2.googlesyndication.com",
+        "cdn.adwebcode.gr",
+        "tagmanager.smartadserver.com",
+        "lib.wtg-ads.com",
+        "s2.adform.net"
+      ],
+      "excludedResourceTypes": ["main_frame"]
+    }
+  }
+]

@@ -1,0 +1,2 @@
+# Only the explicitly approved generated-fixture lab needs this dependency.
+cryptography==50.0.1

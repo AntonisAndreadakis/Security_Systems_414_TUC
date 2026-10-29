@@ -1,0 +1,35 @@
+# Build output (rebuilt by each Makefile; the sandbox never uses committed binaries)
+*.o
+*.so
+*.a
+*.exe
+*.tmp
+/1st assignment/2013030059_assign1/demo
+/1st assignment/2013030059_assign1/test_simple_crypto
+/2nd assignment/2013030059_assign2/assign_1
+/3d assignment/2013030059_assign3/assign_3
+/4th assignment/2013030059_assign4/acmonitor
+/4th assignment/2013030059_assign4/test_aclog
+/5th assignment/2013030059_assign5/acmonitor
+/5th assignment/2013030059_assign5/test_aclog
+/6th assignment/2013030059_assign6/monitor
+/8th_assignment/2013030059_assign8/greeter_safe
+# Note: 8th_assignment/.../Greeter is the course-supplied target and stays tracked.
+
+# Python / tool caches
+__pycache__/
+*.pyc
+.coverage
+.ruff_cache/
+.venv/
+
+# Chrome-generated extension index
+_metadata/
+
+# Untracked copies of old binaries kept on disk in archive/
+/archive/**/demo
+/archive/**/assign_1
+/archive/**/assign_3
+/archive/**/acmonitor
+/archive/**/test_aclog
+/archive/**/monitor
