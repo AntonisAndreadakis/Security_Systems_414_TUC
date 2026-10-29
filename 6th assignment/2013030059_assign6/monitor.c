@@ -389,16 +389,21 @@ static void process_packet(unsigned char *user,
 	size_t offset = 14;
 	size_t captured = header->caplen;
 	uint16_t ethernet_type;
+	int vlan_tags = 0;
 
 	++state->statistics.total_packets;
 	if (captured < 14)
 		return;
 	ethernet_type = read_be16(bytes + 12);
-	if (ethernet_type == ETHERTYPE_VLAN || ethernet_type == ETHERTYPE_QINQ) {
-		if (captured < 18)
+	/* Up to two tags: a plain 802.1Q frame, or a QinQ frame (an outer
+	 * 0x88a8/0x8100 tag followed by an inner 0x8100 one). */
+	while (vlan_tags < 2 &&
+	       (ethernet_type == ETHERTYPE_VLAN || ethernet_type == ETHERTYPE_QINQ)) {
+		if (captured < offset + 4)
 			return;
-		ethernet_type = read_be16(bytes + 16);
-		offset = 18;
+		ethernet_type = read_be16(bytes + offset + 2);
+		offset += 4;
+		++vlan_tags;
 	}
 	memset(&packet, 0, sizeof(packet));
 	if (ethernet_type == ETHERTYPE_IPV4) {

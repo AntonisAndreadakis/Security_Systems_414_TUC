@@ -107,6 +107,7 @@ static void print_hex(const unsigned char *bytes, size_t length)
 int main(void)
 {
 	char otp_input[SIMPLE_CRYPTO_BUFFER_SIZE];
+	char otp_filtered[SIMPLE_CRYPTO_BUFFER_SIZE];
 	char caesar_input[SIMPLE_CRYPTO_BUFFER_SIZE];
 	char caesar_cipher[SIMPLE_CRYPTO_BUFFER_SIZE];
 	char caesar_plain[SIMPLE_CRYPTO_BUFFER_SIZE];
@@ -121,16 +122,21 @@ int main(void)
 	size_t otp_length;
 	int shift;
 
-	if (read_line(otp_input, sizeof(otp_input)) != 0 || !crypto_is_alnum62(otp_input)) {
-		fprintf(stderr, "OTP input must be a non-empty 0-9/A-Z/a-z string\n");
+	if (read_line(otp_input, sizeof(otp_input)) != 0) {
+		fprintf(stderr, "OTP input line could not be read\n");
 		return 1;
 	}
-	otp_length = strlen(otp_input);
+	/* Characters outside 0-9/A-Z/a-z are skipped, i.e. not part of what is
+	 * actually encrypted: unlike Caesar's shift, XOR is not closed over the
+	 * alphabet, so a skipped character can't be told apart from a
+	 * transformed one by its ciphertext value alone. Filtering the input
+	 * first keeps encryption/decryption exactly reversible. */
+	otp_length = crypto_filter_alnum62(otp_input, otp_filtered);
 	if (otp_generate_key(otp_key, otp_length) != 0) {
 		perror("/dev/urandom");
 		return 1;
 	}
-	otp_xor((const unsigned char *)otp_input, otp_key, otp_cipher, otp_length);
+	otp_xor((const unsigned char *)otp_filtered, otp_key, otp_cipher, otp_length);
 	otp_xor(otp_cipher, otp_key, otp_plain, otp_length);
 	otp_plain[otp_length] = '\0';
 	printf("[OTP] input: %s\n", otp_input);
@@ -144,7 +150,7 @@ int main(void)
 	    parse_shift(shift_text, &shift) != 0 ||
 	    caesar_encrypt(caesar_input, shift, caesar_cipher, sizeof(caesar_cipher)) != 0 ||
 	    caesar_decrypt(caesar_cipher, shift, caesar_plain, sizeof(caesar_plain)) != 0) {
-		fprintf(stderr, "Caesar input must be 0-9/A-Z/a-z and its key a non-negative integer\n");
+		fprintf(stderr, "Caesar's key must be a non-negative integer\n");
 		return 1;
 	}
 	printf("[Caesars] input: %s\n", caesar_input);

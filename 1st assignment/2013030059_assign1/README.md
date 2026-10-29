@@ -19,7 +19,9 @@ python assignment.py otp 0001ff --key-hex 0102ff
 
 The `otp` command accepts hexadecimal bytes and prints both key and result.
 Keep generated keys private. `demo` accepts the same five input lines as the C
-demo. `--decrypt` reverses Caesar/Vigenere. Three Python tests passed in Docker.
+demo and prints the exact 12-line format the brief specifies (`input:`/`key:`
+lines included, not just the encrypted/decrypted results). `--decrypt`
+reverses Caesar/Vigenere. Three Python tests passed in Docker.
 
 From the testing workspace:
 
@@ -36,8 +38,23 @@ contains regression tests.
 OTP uses a length-aware XOR operation and reads key bytes from /dev/urandom,
 checking errors and closing the descriptor. The demo displays binary ciphertext
 as hexadecimal. Caesar uses the ordered 62-character alphabet 0-9A-Za-z, with
-modulo wrapping; unsupported characters are rejected. Vigenere accepts uppercase
+modulo wrapping and a required non-negative shift. Vigenere accepts uppercase
 A-Z and repeats a nonempty keyword internally.
+
+Per the brief, a character outside each cipher's alphabet is "skipped", not
+rejected, but the two ciphers skip differently because of how each one works:
+- **Caesar** shifts only alphabet members and leaves everything else (spaces,
+  punctuation, `\n`, ...) unchanged in place. The alphabet is closed under the
+  shift, so this is always exactly reversible.
+- **OTP** filters such characters out of the input before generating the key
+  and XOR-ing, via `crypto_filter_alnum62()`. XOR is not closed over the
+  alphabet, so a skipped character's *ciphertext* value can't reliably be told
+  apart from a transformed one; filtering first keeps the operation exactly
+  reversible instead. `[OTP] decrypted:` is therefore the filtered input, which
+  can differ from the raw `[OTP] input:` line when it contains such characters.
+- **Vigenere** still requires strict uppercase A-Z input and a nonempty
+  uppercase key, and rejects anything else, per its own "should not be used"
+  wording in the brief (as opposed to Caesar/OTP's "should be skipped").
 
 The old unsafe input handling, incorrect wraparound, buffer overruns, broken
 header guard, and direct inclusion of the implementation file were corrected.

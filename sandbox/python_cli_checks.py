@@ -24,8 +24,18 @@ class CommandLineTests(unittest.TestCase):
         return result
     def test_1_demo(self):
         result=self.run_cli(1,'demo',input=b'secret\nhello\n4\nATTACKATDAWN\nLEMON\n')
-        self.assertIn(b'[Vigenere] encrypted: LXFOPVEFRNHR',result.stdout)
+        self.assertIn(b'[OTP] input: secret',result.stdout)
         self.assertIn(b'[OTP] decrypted: secret',result.stdout)
+        self.assertIn(b'[Caesars] input: hello',result.stdout)
+        self.assertIn(b'[Caesars] key: 4',result.stdout)
+        self.assertIn(b'[Vigenere] input: ATTACKATDAWN',result.stdout)
+        self.assertIn(b'[Vigenere] key: LEMON',result.stdout)
+        self.assertIn(b'[Vigenere] encrypted: LXFOPVEFRNHR',result.stdout)
+        # Non-alphabet characters are skipped, not rejected.
+        result=self.run_cli(1,'demo',input=b'sec!ret\nbad!\n1\nATTACKATDAWN\nLEMON\n')
+        self.assertIn(b'[OTP] input: sec!ret',result.stdout)
+        self.assertIn(b'[OTP] decrypted: secret',result.stdout)
+        self.assertIn(b'[Caesars] decrypted: bad!',result.stdout)
     def test_2_file_workflow_and_failed_verify(self):
         source,password=self.work/'input',self.work/'password'
         source.write_bytes(bytes(range(256))); password.write_text('test\n')

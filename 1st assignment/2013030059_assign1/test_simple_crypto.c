@@ -28,6 +28,13 @@ static int test_otp(void)
 	CHECK(otp_generate_key(generated, sizeof(generated)) == 0);
 	CHECK(otp_generate_key(NULL, 0) == 0);
 	CHECK(otp_generate_key(NULL, 1) == -1);
+	{
+		char filtered[32];
+		CHECK(crypto_filter_alnum62("sec!ret\n", filtered) == 6);
+		CHECK(strcmp(filtered, "secret") == 0);
+		CHECK(crypto_filter_alnum62("", filtered) == 0);
+		CHECK(strcmp(filtered, "") == 0);
+	}
 	return 0;
 }
 
@@ -56,7 +63,16 @@ static int test_caesar(void)
 	CHECK(strcmp(plain, "Az9") == 0);
 	CHECK(caesar_encrypt(in_place, 4, in_place, sizeof(in_place)) == 0);
 	CHECK(strcmp(in_place, "lipps") == 0);
-	CHECK(caesar_encrypt("bad!", 1, cipher, sizeof(cipher)) == -1);
+	/* Characters outside the 62-character alphabet are skipped, i.e. left
+	 * unchanged in place, not rejected. */
+	CHECK(caesar_encrypt("bad!", 1, cipher, sizeof(cipher)) == 0);
+	CHECK(cipher[3] == '!');
+	CHECK(caesar_decrypt(cipher, 1, plain, sizeof(plain)) == 0);
+	CHECK(strcmp(plain, "bad!") == 0);
+	CHECK(caesar_encrypt("has space", 3, cipher, sizeof(cipher)) == 0);
+	CHECK(cipher[3] == ' ');
+	CHECK(caesar_decrypt(cipher, 3, plain, sizeof(plain)) == 0);
+	CHECK(strcmp(plain, "has space") == 0);
 	CHECK(caesar_encrypt("abc", -1, cipher, sizeof(cipher)) == -1);
 	CHECK(caesar_encrypt("abc", 1, cipher, 3) == -1);
 	return 0;

@@ -6,7 +6,9 @@ never attempts to acquire privileges. No packet contents are transmitted.
 """
 import argparse
 from collections import Counter
+import contextlib
 from dataclasses import dataclass
+import io
 import ipaddress
 from pathlib import Path
 import socket
@@ -187,6 +189,22 @@ class Tests(unittest.TestCase):
         self.assertGreater(monitor.stats['tcp_flows'],0)
         self.assertGreater(monitor.stats['udp_flows'],0)
         print('Sample capture:',monitor.summary())
+    def test_flow_limit_reports_statistics_before_exit(self):
+        # Matches the C version: statistics are printed even when a run ends
+        # in an error, here the flow table limit, not only on a clean exit.
+        global MAX_FLOWS
+        frames=[self.frame(6),self.frame(17)]
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'capture'
+            write_fixture(path,frames)
+            saved=MAX_FLOWS; MAX_FLOWS=1
+            try:
+                buffer=io.StringIO()
+                with contextlib.redirect_stdout(buffer):
+                    with self.assertRaises(SystemExit) as cm: main(['-r',str(path)])
+                self.assertEqual(cm.exception.code,1)
+                self.assertIn('packets: 2',buffer.getvalue())
+            finally: MAX_FLOWS=saved
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
@@ -214,9 +232,12 @@ def main(argv=None):
     except KeyboardInterrupt: pass
     except (OSError,ValueError) as error: parser.exit(1,f'Error: {error}\n')
     finally:
+        # Always print the statistics (as the C version always does), even on
+        # an error exit: parser.exit() raises SystemExit, which would
+        # otherwise skip them if they were printed only after the try block.
         if 'source' in locals(): source.close()
-    for key in ('flows','tcp_flows','udp_flows','packets','tcp_packets','udp_packets','tcp_bytes','udp_bytes','skipped'):
-        print(f'{key}: {monitor.summary().get(key,0)}')
+        for key in ('flows','tcp_flows','udp_flows','packets','tcp_packets','udp_packets','tcp_bytes','udp_bytes','skipped'):
+            print(f'{key}: {monitor.summary().get(key,0)}')
     return 0
 
 if __name__ == '__main__': sys.exit(main())

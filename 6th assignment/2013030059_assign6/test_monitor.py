@@ -9,6 +9,11 @@ import unittest
 BASE = Path(__file__).resolve().parent
 def ethernet(payload, protocol=0x800):
     return b'\0' * 12 + struct.pack('!H', protocol) + payload
+def ethernet_vlan(payload, protocol=0x800, tags=(0x8100,)):
+    frame = b'\0' * 12
+    for tpid in tags:
+        frame += struct.pack('!HH', tpid, 0)  # TPID + a zero TCI
+    return frame + struct.pack('!H', protocol) + payload
 def udp(payload=b'abc', sport=1200):
     return struct.pack('!HHHH', sport, 53, len(payload) + 8, 0) + payload
 def tcp(payload=b'abc', seq=100):
@@ -58,6 +63,17 @@ class MonitorTests(unittest.TestCase):
             self.assertIn(line + '\n', out)
         self.assertEqual(out.count('Retransmitted'), 1)
         self.assertEqual(out.count('header=8 payload=3'), 3)
+
+    def test_vlan_and_qinq_tags(self):
+        # A plain 802.1Q frame (one tag) and a QinQ frame (outer 0x88a8 +
+        # inner 0x8100 tag) must both decode through to the IPv4/UDP payload.
+        frames = [ethernet_vlan(ipv4(udp()), tags=(0x8100,)),
+                  ethernet_vlan(ipv4(udp()), tags=(0x88a8, 0x8100))]
+        result = self.run_capture(frames)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Total number of packets received: 2\n', result.stdout)
+        self.assertIn('Total number of UDP packets received: 2\n', result.stdout)
+        self.assertIn('Total number of network flows captured: 1\n', result.stdout)
 
     def test_truncated_malformed_fragmented_frames(self):
         valid = ethernet(ipv4(udp()))

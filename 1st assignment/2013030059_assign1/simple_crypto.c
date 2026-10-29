@@ -233,6 +233,20 @@ int crypto_is_alnum62(const char *text)
 	return 1;
 }
 
+size_t crypto_filter_alnum62(const char *input, char *output)
+{
+	const unsigned char *cursor = (const unsigned char *)input;
+	size_t written = 0;
+
+	while (*cursor != '\0') {
+		if (strchr(SIMPLE_CRYPTO_ALPHABET, (int)*cursor) != NULL)
+			output[written++] = (char)*cursor;
+		++cursor;
+	}
+	output[written] = '\0';
+	return written;
+}
+
 int otp_generate_key(unsigned char *key, size_t length)
 {
 	size_t offset = 0;
@@ -273,7 +287,7 @@ static int caesar_transform(const char *input, int shift, int decrypt,
 	size_t i;
 	int normalized;
 
-	if (!crypto_is_alnum62(input) || output == NULL || shift < 0)
+	if (input == NULL || output == NULL || shift < 0)
 		return -1;
 	length = strlen(input);
 	if (capacity <= length)
@@ -283,7 +297,17 @@ static int caesar_transform(const char *input, int shift, int decrypt,
 		normalized = SIMPLE_CRYPTO_ALPHABET_SIZE - normalized;
 	for (i = 0; i < length; ++i) {
 		const char *position = strchr(SIMPLE_CRYPTO_ALPHABET, (unsigned char)input[i]);
-		size_t index = (size_t)(position - SIMPLE_CRYPTO_ALPHABET);
+		size_t index;
+
+		if (position == NULL) {
+			/* Not part of the cipher's alphabet: skip it, i.e. leave it
+			 * unchanged. The alphabet is closed under the shift (a shifted
+			 * member is always itself a member), so decrypting with the
+			 * same rule always undoes this exactly. */
+			output[i] = input[i];
+			continue;
+		}
+		index = (size_t)(position - SIMPLE_CRYPTO_ALPHABET);
 		output[i] = SIMPLE_CRYPTO_ALPHABET[(index + (size_t)normalized) %
 		                                      SIMPLE_CRYPTO_ALPHABET_SIZE];
 	}

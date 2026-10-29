@@ -14,11 +14,12 @@ python assignment.py --self-test
 python assignment.py -r test_pcap_5mins.pcap --summary-only
 ```
 
-Three tests passed. The supplied capture produced 14,261 packets, 941 TCP
+Four tests passed. The supplied capture produced 14,261 packets, 941 TCP
 flows, 264 UDP flows, 13,708 TCP packets, 501 UDP packets, and 52 skipped frames.
 TCP/UDP frame-byte totals were 9,135,182 / 75,353. Truncated records fail clearly;
 malformed frames and fragments are skipped. PCAPNG and fragment reassembly
-are not supported.
+are not supported. Statistics print even when a run ends in an error (e.g. the
+flow table limit), matching the C version, not only on a clean exit.
 
 The Linux live mode requires `-i INTERFACE --allow-live-capture` after separate
 approval. It uses AF_PACKET, never escalates privileges, and has not been tested.
@@ -42,7 +43,9 @@ interface changes, or live sniffing were attempted.
 - Uses libpcap, with checked capture-open failures and preserved interface choice.
 - Validates captured lengths before reading headers; decodes multibyte fields
   without unaligned structure casts.
-- Handles IPv4 header options, IPv6 extension lengths, and a VLAN tag.
+- Handles IPv4 header options, IPv6 extension lengths, and up to two VLAN
+  tags (a plain 802.1Q tag, or a QinQ frame's outer+inner tags), matching
+  the Python version.
 - Tracks directional five-tuple flows separately from packet counts.
 - Reports TCP/UDP header and payload sizes, packet totals, byte totals, and flows.
 - Connects TCP sequence tracking to a retransmission indicator.
