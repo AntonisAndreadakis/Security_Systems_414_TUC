@@ -1,3 +1,7 @@
+#define _GNU_SOURCE
+
+#if 0 /* Original assignment-5 submission retained below for review; not compiled. */
+
 #include <time.h>
 #include <stdio.h>
 #include <dlfcn.h>
@@ -116,10 +120,10 @@ unsigned char *generateHash(const char *path, const char *new_data){
 	FILE *(*original_fopen)(const char *, const char *);
 	original_fopen = dlsym(RTLD_NEXT, "fopen");
 	original_fopen_ret = (*original_fopen)(path, "rb");
-	if(!original_fopen_ret){	
+	if(!original_fopen_ret){
 		free(retVal);
-		return NULL;		
-	}	
+		return NULL;
+	}
 	//reading from file:
 	MD5_Init(&ctx);
 	//read and update context:
@@ -129,7 +133,7 @@ unsigned char *generateHash(const char *path, const char *new_data){
 	if(new_data)
 		MD5_Update(&ctx, new_data, strlen(new_data));
 	MD5_Final(retVal, &ctx);
-	
+
 	fclose(original_fopen_ret);
 	free(data);
 
@@ -146,7 +150,7 @@ void printHex(FILE *fp, const char *data, size_t n){
 	fprintf(fp,"\n");
 }
 unsigned char *fillZero(size_t n){
-	unsigned char *k = (unsigned char *)malloc(n); 
+	unsigned char *k = (unsigned char *)malloc(n);
 	for(size_t i =0; i < n; i++)
 		*(k + i) = 0;
 return k;
@@ -159,7 +163,7 @@ void log_print(char *logfile, uid_t uid, int actionType, int actionFlag, int fil
 	FILE *fp_fopen_ret;
 
 	//if not there, make a log file and fix permissions:
-	if(access(logfile, F_OK) == -1){		
+	if(access(logfile, F_OK) == -1){
 		fp_fopen = dlsym(RTLD_NEXT, "fopen");
 		fp_fopen_ret = (*fp_fopen)(logfile, "w");
 		if(!fp_fopen_ret){
@@ -167,7 +171,7 @@ void log_print(char *logfile, uid_t uid, int actionType, int actionFlag, int fil
 			exit(-1);
 		}
 		fixPrivileges(logfile, S_IRWXU | S_IWGRP | S_IWOTH);
-        fclose(fp_fopen_ret);  
+        fclose(fp_fopen_ret);
 	}
 
 	fp_fopen = dlsym(RTLD_NEXT, "fopen");
@@ -179,7 +183,7 @@ void log_print(char *logfile, uid_t uid, int actionType, int actionFlag, int fil
 	fclose(fp_fopen_ret);
 }
 
-int open(const char *path, int flags, mode_t mode){	
+int open(const char *path, int flags, mode_t mode){
 	if(mode < 4095){
 		/* Call the original fopen to avoid recursion into our fopen wrapper */
 		FILE *(*orig_fopen)(const char *, const char *);
@@ -194,7 +198,7 @@ int open(const char *path, int flags, mode_t mode){
 	int (*original_open_ret)(const char*, int, mode_t);
 	original_open_ret = dlsym(RTLD_NEXT,"open");
 
-	return (*original_open_ret)(path, flags, mode);    
+	return (*original_open_ret)(path, flags, mode);
 }
 FILE *fopen(const char *path, const char *mode) {
 	printf("\nOpening %s:\n", path);
@@ -271,3 +275,236 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream) {
 	return original_fwrite_ret;
 }
 
+#endif
+
+/* Fixed implementation below. Known problems with the original above:
+ *  - a bogus open() hook truncated the very file it was about to open
+ *    (fopen(path,"w") before calling the real open()), and read mode garbage
+ *    for the "mode" argument whenever O_CREAT was not passed.
+ *  - the log line mixed space- and tab-delimited fields, which acmonitor.c's
+ *    strtok(" ") parser could not line up with the 7 columns the assignment
+ *    specifies.
+ *  - %02x on a (signed, on this platform) char sign-extended high bytes into
+ *    6 hex digits instead of 2.
+ *  - fwrite's digest only covered strlen(ptr) bytes of the new data instead
+ *    of size*nmemb, so a NUL or binary payload was fingerprinted short.
+ *  - fopen() did not check its own result for NULL before writing through it.
+ *  - the log file was created world-writable.
+ *
+ * This version hooks only fopen()/fwrite() as the brief asks, emits one
+ * well-formed 7-field tab-separated record per call (uid, path, date, time,
+ * access-type, denied, MD5 fingerprint) matching assignment.py's Event
+ * format, and guards against recursing into itself while producing a log
+ * entry (dlsym/fopen/fwrite of the log file would otherwise re-enter these
+ * same hooks).
+ */
+
+#include <dlfcn.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <openssl/evp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+#define DEFAULT_LOG_PATH "./file_logging.log"
+#define HASH_HEX_LENGTH 32
+
+typedef FILE *(*fopen_fn)(const char *, const char *);
+typedef size_t (*fwrite_fn)(const void *, size_t, size_t, FILE *);
+
+static _Thread_local int inside_hook;
+
+static const char *log_path(void)
+{
+	const char *configured = getenv("ACLOG_PATH");
+	return (configured != NULL && configured[0] != '\0') ? configured : DEFAULT_LOG_PATH;
+}
+
+static void safe_field(char *destination, size_t size, const char *source)
+{
+	size_t i;
+
+	if (size == 0)
+		return;
+	for (i = 0; i + 1 < size && source != NULL && source[i] != '\0'; ++i) {
+		char c = source[i];
+		destination[i] = (c == '\t' || c == '\n' || c == '\r') ? '?' : c;
+	}
+	destination[i] = '\0';
+}
+
+/* access type, per the assignment brief: 0 = create, 1 = open, 2 = write */
+enum access_type { ACCESS_CREATE = 0, ACCESS_OPEN = 1, ACCESS_WRITE = 2 };
+
+static int fingerprint_file(const char *path, char output[HASH_HEX_LENGTH + 1])
+{
+	unsigned char buffer[4096];
+	unsigned char digest[EVP_MAX_MD_SIZE];
+	unsigned int digest_length = 0;
+	EVP_MD_CTX *context;
+	ssize_t count;
+	int descriptor;
+	unsigned int i;
+
+	strcpy(output, "-");
+	if (path == NULL)
+		return -1;
+	descriptor = open(path, O_RDONLY | O_CLOEXEC);
+	if (descriptor == -1)
+		return -1;
+	context = EVP_MD_CTX_new();
+	if (context == NULL || EVP_DigestInit_ex(context, EVP_md5(), NULL) != 1) {
+		EVP_MD_CTX_free(context);
+		close(descriptor);
+		return -1;
+	}
+	while ((count = read(descriptor, buffer, sizeof(buffer))) > 0) {
+		if (EVP_DigestUpdate(context, buffer, (size_t)count) != 1) {
+			EVP_MD_CTX_free(context);
+			close(descriptor);
+			return -1;
+		}
+	}
+	close(descriptor);
+	if (count < 0 || EVP_DigestFinal_ex(context, digest, &digest_length) != 1 ||
+	    digest_length != 16) {
+		EVP_MD_CTX_free(context);
+		return -1;
+	}
+	EVP_MD_CTX_free(context);
+	for (i = 0; i < digest_length; ++i)
+		(void)snprintf(output + (i * 2), 3, "%02x", digest[i]);
+	return 0;
+}
+
+/* Record one event: uid, path, date, time, access-type, denied, fingerprint. */
+static void append_entry(const char *path, int access_type, int denied)
+{
+	char clean_path[PATH_MAX];
+	char hash[HASH_HEX_LENGTH + 1];
+	char date[11];
+	char clock_time[9];
+	char record[PATH_MAX + 128];
+	struct tm local;
+	time_t now;
+	int descriptor;
+	int length;
+
+	safe_field(clean_path, sizeof(clean_path), path != NULL ? path : "(unknown)");
+	(void)fingerprint_file(path, hash);
+	now = time(NULL);
+	if (localtime_r(&now, &local) == NULL)
+		return;
+	(void)strftime(date, sizeof(date), "%Y-%m-%d", &local);
+	(void)strftime(clock_time, sizeof(clock_time), "%H:%M:%S", &local);
+	length = snprintf(record, sizeof(record), "%lu\t%s\t%s\t%s\t%d\t%d\t%s\n",
+	                  (unsigned long)getuid(), clean_path, date, clock_time,
+	                  access_type, denied, hash);
+	if (length < 0 || (size_t)length >= sizeof(record))
+		return;
+	descriptor = open(log_path(), O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC,
+	                  S_IRUSR | S_IWUSR);
+	if (descriptor == -1)
+		return;
+	(void)fchmod(descriptor, S_IRUSR | S_IWUSR);
+	(void)write(descriptor, record, (size_t)length);
+	(void)close(descriptor);
+}
+
+static int stream_path(FILE *stream, char output[PATH_MAX])
+{
+	char proc_path[64];
+	ssize_t length;
+	int descriptor;
+
+	if (stream == NULL)
+		return -1;
+	descriptor = fileno(stream);
+	if (descriptor == -1)
+		return -1;
+	if (snprintf(proc_path, sizeof(proc_path), "/proc/self/fd/%d", descriptor) < 0)
+		return -1;
+	length = readlink(proc_path, output, PATH_MAX - 1);
+	if (length < 0)
+		return -1;
+	output[length] = '\0';
+	return 0;
+}
+
+FILE *fopen(const char *path, const char *mode)
+{
+	fopen_fn real_fopen;
+	void *symbol = dlsym(RTLD_NEXT, "fopen");
+	_Static_assert(sizeof(real_fopen) == sizeof(symbol), "POSIX function pointer size");
+	memcpy(&real_fopen, &symbol, sizeof(real_fopen));
+	FILE *result;
+	struct stat status;
+	char normalized[PATH_MAX];
+	const char *logged_path;
+	int existed;
+	int saved_errno;
+
+	if (real_fopen == NULL) {
+		errno = ENOSYS;
+		return NULL;
+	}
+	if (inside_hook)
+		return real_fopen(path, mode);
+	inside_hook = 1;
+	existed = stat(path, &status) == 0;
+	result = real_fopen(path, mode);
+	saved_errno = errno;
+	logged_path = (result != NULL && realpath(path, normalized) != NULL) ? normalized : path;
+	append_entry(logged_path, (!existed && result != NULL) ? ACCESS_CREATE : ACCESS_OPEN,
+	             result == NULL && (saved_errno == EACCES || saved_errno == EPERM));
+	inside_hook = 0;
+	errno = saved_errno;
+	return result;
+}
+
+/* fopen() is what most encryption libraries (and ransomware.sh's openssl
+ * calls, via its libc) actually resolve to on 64-bit offsets; alias it so
+ * callers that go through fopen64() are logged too. */
+FILE *fopen64(const char *path, const char *mode)
+{
+	return fopen(path, mode);
+}
+
+size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+	fwrite_fn real_fwrite;
+	void *symbol = dlsym(RTLD_NEXT, "fwrite");
+	_Static_assert(sizeof(real_fwrite) == sizeof(symbol), "POSIX function pointer size");
+	memcpy(&real_fwrite, &symbol, sizeof(real_fwrite));
+	char path[PATH_MAX];
+	size_t result;
+	int saved_errno;
+	int have_path;
+
+	if (real_fwrite == NULL) {
+		errno = ENOSYS;
+		return 0;
+	}
+	if (inside_hook)
+		return real_fwrite(ptr, size, nmemb, stream);
+	inside_hook = 1;
+	have_path = stream_path(stream, path) == 0;
+	result = real_fwrite(ptr, size, nmemb, stream);
+	saved_errno = errno;
+	if (result > 0)
+		(void)fflush(stream);
+	append_entry(have_path ? path : "(unknown)", ACCESS_WRITE,
+	             result < nmemb && (saved_errno == EACCES || saved_errno == EPERM));
+	inside_hook = 0;
+	errno = saved_errno;
+	return result;
+}

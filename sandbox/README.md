@@ -11,8 +11,10 @@ powershell -NoProfile -File sandbox/run.ps1 -Assignment 0 -Python
 ```
 
 The latest combined run passed **46 self-tests and 8 command-line integration
-tests**. Select 1 through 8 to run one project's self-tests. Assignment 5 now
-has a safe Python `make check`; its historical C/Bash path remains unfinished.
+tests**. Select 1 through 8 to run one project's self-tests. Assignment 5's
+`-Python` run exercises the maintained `assignment.py`; a plain run instead
+builds and smoke-tests its fixed C/Bash deliverables (logger.c, acmonitor.c,
+ransomware.sh).
 See [the script index and limits](../PYTHON_PROJECTS.md).
 
 The image includes Python cryptography 50.0.1, cffi 2.1.1, and pycparser 3.0
@@ -38,7 +40,7 @@ Docker Desktop's running-container list.
 | 2 | Repaired; crypto/fixture/tamper tests and ASan/UBSan passed |
 | 3 | Corrected *_fixed sources; RSA regression suite passed |
 | 4 | Revised C logger/monitor; assertion-based tests passed |
-| 5 | Python `make check` passed 14 tests; historical C/Bash remains unfinished |
+| 5 | Python `make check` passed 14 tests; C/Bash `make check` builds logger.so/acmonitor/ransomware.sh and passes a 10-step smoke test in `tests/check_legacy.sh` |
 | 6 | Four offline tests passed; supplied capture has 14,261 packets |
 | 7 | Twelve Python and seven shell mock tests passed; real firewall integration pending |
 | 8 | Three Python and seven safe native/model tests passed; original exploit deliverables pending |
@@ -59,8 +61,8 @@ powershell -NoProfile -File sandbox/run.ps1 -Assignment 1
 ```
 
 Without `-Python`, replace 1 with 2, 3, 4, 5, 6, 7, or 8. Assignment 5's
-default check covers its maintained Python implementation; the original C/Bash
-implementation is not ready.
+default check now builds and smoke-tests its C/Bash deliverables too (see
+`5th assignment/2013030059_assign5/Readme.md`).
 No PowerShell execution-policy changes are required by this setup.
 Build downloads require network access; test containers have none.
 

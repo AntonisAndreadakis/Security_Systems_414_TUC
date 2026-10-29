@@ -16,6 +16,9 @@
 /8th_assignment/2013030059_assign8/greeter_safe
 # Note: 8th_assignment/.../Greeter is the course-supplied target and stays tracked.
 
+# Scratch directory for 5th assignment/2013030059_assign5/tests/check_legacy.sh
+.check-legacy.*
+
 # Python / tool caches
 __pycache__/
 *.pyc
