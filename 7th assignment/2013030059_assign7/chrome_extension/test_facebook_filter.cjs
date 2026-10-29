@@ -7,14 +7,18 @@ const vm = require("node:vm");
 const source = fs.readFileSync(path.join(__dirname, "facebook_filter.js"), "utf8");
 const hiddenClass = "personal-adblock-sponsored-post";
 
-function makePost() {
+function makePost(nestedMarkerCount = 0) {
   const classes = new Set();
   return {
     classList: {
       add: (value) => classes.add(value),
       remove: (value) => classes.delete(value),
       contains: (value) => classes.has(value)
-    }
+    },
+    // Used only by the fallback `data-visualcompletion` branch, to tell a
+    // single post's own wrapper apart from a large, shared container that
+    // happens to carry the same attribute.
+    querySelectorAll: () => new Array(nestedMarkerCount).fill(null)
   };
 }
 
@@ -112,4 +116,17 @@ test("hides only marked posts, including posts added later, and restores them", 
   assert.equal(harness.isObserving(), true);
   assert.equal(sponsored.classList.contains(hiddenClass), true);
   assert.equal(laterSponsored.classList.contains(hiddenClass), true);
+});
+
+test("the data-visualcompletion fallback refuses a container shared by more than one post", async () => {
+  const harness = makeHarness();
+  // Two sponsored markers inside the same candidate container (post has
+  // nestedMarkerCount=2): this looks like a shared wrapper (e.g. the whole
+  // feed), not one post's own wrapper, so it must not be hidden.
+  const sharedContainer = makePost(2);
+  const marker = harness.addMarker(sharedContainer, true);
+  harness.notifyMutation(marker);
+
+  await new Promise(setImmediate);
+  assert.equal(sharedContainer.classList.contains(hiddenClass), false);
 });

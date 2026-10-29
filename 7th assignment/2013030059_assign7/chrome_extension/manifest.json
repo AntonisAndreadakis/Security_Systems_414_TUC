@@ -11,7 +11,7 @@
   "declarative_net_request": {
     "rule_resources": [
       {
-        "id": "taboola_images",
+        "id": "ad_network_rules",
         "enabled": true,
         "path": "rules.json"
       }

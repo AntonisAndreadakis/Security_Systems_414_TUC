@@ -2,18 +2,34 @@
   const SETTING = "facebookFilterEnabled";
   const HIDDEN_CLASS = "personal-adblock-sponsored-post";
   const SPONSORED_MARKER = [
+    // Greek UI.
     'a[aria-label="Διαφημιζόμενος"]',
-    '[aria-label^="Άνοιγμα μενού για χορηγούμενο περιεχόμενο"]'
+    '[aria-label^="Άνοιγμα μενού για χορηγούμενο περιεχόμενο"]',
+    // English UI. Facebook's language depends on the account/browser
+    // locale, not the page's own language, so a Greek-only marker misses
+    // sponsored posts for anyone not using Facebook in Greek.
+    'a[aria-label="Sponsored"]'
+    // The menu-button marker above has no verified English equivalent here;
+    // if sponsored posts go undetected on an English-UI account, add it
+    // the same way (inspect the menu button's aria-label and extend this list).
   ].join(", ");
 
   let enabled = false;
 
   function findPost(marker) {
-    // Prefer a single feed post. The last selector is a fallback for the
-    // supplied Facebook markup when no semantic article wrapper exists.
-    return marker.closest('[role="article"]')
-      || marker.closest('[data-pagelet^="FeedUnit"]')
-      || marker.closest('div[data-visualcompletion="ignore-late-mutation"]');
+    // Prefer a single feed post.
+    const article = marker.closest('[role="article"]');
+    if (article) return article;
+    const feedUnit = marker.closest('[data-pagelet^="FeedUnit"]');
+    if (feedUnit) return feedUnit;
+    // Last resort for markup with no semantic article wrapper. This
+    // attribute is also used by large, shared containers (e.g. the whole
+    // feed), so only trust it when it wraps just the marker we're looking
+    // at - not multiple sponsored posts at once.
+    const candidate = marker.closest('div[data-visualcompletion="ignore-late-mutation"]');
+    if (!candidate) return null;
+    const markersInside = candidate.querySelectorAll?.(SPONSORED_MARKER) ?? [];
+    return markersInside.length <= 1 ? candidate : null;
   }
 
   function hideSponsoredPosts(root) {
@@ -72,9 +88,12 @@
     }
   });
 
-  // Start before Facebook constructs its feed. Storage can turn the filter off.
-  setEnabled(true);
-
+  // Wait for the real setting before hiding anything. `enabled` starts
+  // false, so if we hid eagerly and the user had actually turned the
+  // filter off, sponsored posts would flash hidden before this read
+  // resolves and corrects it. hideSponsoredPosts() below does a full
+  // re-scan of the document, so nothing inserted while this read is in
+  // flight is missed once it resolves.
   chrome.storage.local.get({ [SETTING]: true })
     .then((settings) => setEnabled(settings[SETTING] !== false))
     .catch((error) => console.warn("Personal Adblock: Facebook filter unavailable", error));

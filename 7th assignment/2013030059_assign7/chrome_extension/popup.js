@@ -1,4 +1,4 @@
-const RULESET_ID = "taboola_images";
+const RULESET_ID = "ad_network_rules";
 const FACEBOOK_SETTING = "facebookFilterEnabled";
 const toggleButton = document.getElementById("toggle");
 const status = document.getElementById("status");
