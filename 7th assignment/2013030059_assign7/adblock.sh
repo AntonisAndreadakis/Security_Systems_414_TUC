@@ -3,6 +3,9 @@
 set -u
 
 # Resolve data paths relative to the script, not the caller's working directory.
+# domainNames.txt/IPAddresses.txt/adblockRules normally live beside this script;
+# the fallback to the parent directory is kept only for a caller that still
+# points this script at the old, pre-cleanup layout.
 scriptDir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 dataDir="$scriptDir"
 if [ ! -e "$dataDir/domainNames.txt" ] && [ -e "$scriptDir/../domainNames.txt" ]; then
@@ -40,13 +43,16 @@ validIPv4() {
 printHelp() {
     printf 'A simple adblock mechanism using an isolated iptables chain.\n\n'
     printf 'Usage: %s [OPTION]\n\n' "$0"
-    printf '  -domains  Resolve domainNames.txt into IPAddresses.txt.\n'
+    printf '  -domains  Resolve domainNames.txt into IPAddresses.txt and install rules.\n'
     printf '  -ips      Install rules from IPAddresses.txt.\n'
     printf '  -save     Save firewall rules to adblockRules.\n'
     printf '  -load     Validate and load rules from adblockRules.\n'
     printf '  -list     List rules managed by this script.\n'
-    printf '  -reset    Remove rules managed by this script.\n'
-    printf '  -help     Display this help and exit.\n'
+    printf '  -reset    Remove rules managed by this script (accept all again).\n'
+    printf '  -help     Display this help and exit.\n\n'
+    printf 'Installed rules reject traffic to a blocked IP (OUTPUT) and traffic\n'
+    printf 'from a blocked IP (INPUT), so neither a request nor a stray reply\n'
+    printf 'from an ad domain gets through.\n'
 }
 
 resolveDomains() {
@@ -94,7 +100,13 @@ resolveDomains() {
 }
 
 configureIPs() {
-    local ip installed=0 invalid=0
+    # Rejects traffic in both directions for every blocked IP: -d (as the
+    # destination) covers OUTPUT, so a request to the ad server never leaves;
+    # -s (as the source) covers INPUT, so a reply or unsolicited packet from
+    # that IP is dropped too. Each direction's own rules are no-ops on the
+    # other chain (OUTPUT never sees the ad server as a source, INPUT never
+    # sees it as the local destination), so one chain safely serves both.
+    local ip installed=0
     local -a addresses=()
     local -A seen=()
 
@@ -117,19 +129,16 @@ configureIPs() {
         iptables -N "$chainName" || fail "could not create the $chainName chain."
     iptables -F "$chainName" || fail "could not clear the $chainName chain."
     iptables -C OUTPUT -j "$chainName" >/dev/null 2>&1 ||
-        iptables -I OUTPUT 1 -j "$chainName" || fail "could not attach the $chainName chain."
+        iptables -I OUTPUT 1 -j "$chainName" || fail "could not attach the $chainName chain to OUTPUT."
+    iptables -C INPUT -j "$chainName" >/dev/null 2>&1 ||
+        iptables -I INPUT 1 -j "$chainName" || fail "could not attach the $chainName chain to INPUT."
 
     for ip in "${addresses[@]}"; do
-        if validIPv4 "$ip"; then
-            iptables -A "$chainName" -d "$ip" -j REJECT || fail "failed to add rule for $ip."
-            ((installed += 1))
-        else
-            printf 'Warning: ignoring invalid IPv4 address: %s\n' "$ip" >&2
-            ((invalid += 1))
-        fi
+        iptables -A "$chainName" -d "$ip" -j REJECT || fail "failed to add an outbound rule for $ip."
+        iptables -A "$chainName" -s "$ip" -j REJECT || fail "failed to add an inbound rule for $ip."
+        ((installed += 1))
     done
-    (( installed > 0 )) || fail "no valid IPv4 addresses were found."
-    printf 'Installed %d rules; skipped %d invalid entries.\n' "$installed" "$invalid"
+    printf 'Installed rules for %d address(es) (%d total: OUTPUT + INPUT).\n' "$installed" "$((installed * 2))"
 }
 
 saveRules() {
@@ -158,26 +167,33 @@ loadRules() {
 resetRules() {
     requireRoot
     requireCommand iptables
-    while iptables -C OUTPUT -j "$chainName" >/dev/null 2>&1; do
-        iptables -D OUTPUT -j "$chainName" || fail "could not detach the $chainName chain."
+    local hook
+    for hook in OUTPUT INPUT; do
+        while iptables -C "$hook" -j "$chainName" >/dev/null 2>&1; do
+            iptables -D "$hook" -j "$chainName" || fail "could not detach the $chainName chain from $hook."
+        done
     done
     if iptables -nL "$chainName" >/dev/null 2>&1; then
         iptables -F "$chainName" || fail "could not clear the $chainName chain."
         iptables -X "$chainName" || fail "could not remove the $chainName chain."
     fi
-    printf 'Removed all rules managed by this script.\n'
+    printf 'Removed all rules managed by this script (accept all again).\n'
 }
 
 listRules() {
     requireRoot
     requireCommand iptables
-    iptables -S || fail "could not list current firewall rules."
+    if ! iptables -nL "$chainName" >/dev/null 2>&1; then
+        printf 'No rules installed (chain %s does not exist).\n' "$chainName"
+        return 0
+    fi
+    iptables -S "$chainName" || fail "could not list current firewall rules."
 }
 
 adBlock() {
     [ "$#" -eq 1 ] || { printHelp >&2; return 1; }
     case $1 in
-        -domains) resolveDomains ;;
+        -domains) resolveDomains && configureIPs ;;
         -ips) configureIPs ;;
         -save) saveRules ;;
         -load) loadRules ;;

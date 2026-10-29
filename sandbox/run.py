@@ -34,11 +34,6 @@ def main():
     source = Path('/src') / PROJECTS[number]
     dest = Path('/work') / f'project{number}'
     shutil.copytree(source, dest, ignore=shutil.ignore_patterns('__pycache__', '*.o', '*.so', '*.exe'))
-    # Assignment 7's input files live in the parent directory in this submission.
-    if number == 7:
-        for name in ('domainNames.txt', 'IPAddresses.txt', 'adblockRules'):
-            if (source.parent / name).is_file():
-                shutil.copy2(source.parent / name, dest.parent / name)
     os.chdir(dest)
     print(f'Assignment {number}: disposable copy; uid={os.geteuid()}', flush=True)
     if '--python' in sys.argv[2:]:

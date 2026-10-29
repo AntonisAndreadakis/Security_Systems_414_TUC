@@ -54,8 +54,22 @@ iptables-restore() { printf 'MOCK restore %s\\n' "$*"; cat >/dev/null; }
         result = self.mock('configureIPs')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.count('-A ADBLOCK -d'), 2)
+        self.assertEqual(result.stdout.count('-A ADBLOCK -s'), 2)
+        self.assertIn('-I OUTPUT 1 -j ADBLOCK', result.stdout)
+        self.assertIn('-I INPUT 1 -j ADBLOCK', result.stdout)
         self.assertIn('-F ADBLOCK', result.stdout)
         self.assertNotIn('-F OUTPUT', result.stdout)
+        self.assertNotIn('-F INPUT', result.stdout)
+
+    def test_domains_mode_resolves_and_installs_rules(self):
+        # -domains must do both: resolve names into IPAddresses.txt AND
+        # install rules from the result, not just write the file.
+        result = self.mock(
+            "getent() { printf '192.0.2.4 STREAM test\\n'; }; adBlock -domains")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.work / 'IPAddresses.txt').read_text(), '192.0.2.4\n')
+        self.assertIn('-A ADBLOCK -d 192.0.2.4 -j REJECT', result.stdout)
+        self.assertIn('-A ADBLOCK -s 192.0.2.4 -j REJECT', result.stdout)
 
     def test_invalid_or_empty_replacement_preserves_rules(self):
         for content in ('192.0.2.1\n999.0.0.1\n', ''):
@@ -69,6 +83,7 @@ iptables-restore() { printf 'MOCK restore %s\\n' "$*"; cat >/dev/null; }
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('-X ADBLOCK', result.stdout)
         self.assertNotIn('-F OUTPUT', result.stdout)
+        self.assertNotIn('-F INPUT', result.stdout)
 
     def test_mock_save_and_guarded_restore(self):
         result = self.mock('saveRules')

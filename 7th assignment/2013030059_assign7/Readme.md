@@ -42,20 +42,29 @@ Kernel integration and real DNS remain untested; see the limitations below.
 
 ## Earlier C/shell validation status
 
-Seven tests passed in Docker using mocked firewall commands and a fake DNS
+Eight tests passed in Docker using mocked firewall commands and a fake DNS
 resolver. No real DNS resolution, firewall modification, or privileged operation
 was performed. Actual firewall integration remains unverified.
 
 
 ## Updates
 
-The maintained script is **this directory's adblock.sh**. The separate
-`../adblock.sh` is a historical copy and is not covered by these tests.
+The maintained script is **this directory's adblock.sh**, with its own
+`domainNames.txt`/`IPAddresses.txt`/`adblockRules` beside it. The original,
+unmodified course skeleton is now at
+`archive/7th assignment/adblock.sh`.
 
 The maintained script resolves paths relative to itself, validates inputs,
-deduplicates addresses, and writes generated files atomically. Destination rules
-use a dedicated ADBLOCK chain. Invalid or empty IP replacements fail before
-changing existing rules. Reset is scoped to that chain and its OUTPUT jump.
+deduplicates addresses, and writes generated files atomically. A dedicated
+ADBLOCK chain holds, per blocked IP, a `-d` rule (rejects outbound traffic to
+it, attached to OUTPUT) and an `-s` rule (rejects inbound traffic from it,
+attached to INPUT), so a request to an ad domain never leaves and a reply or
+unsolicited packet from it is dropped too. `-domains` resolves
+`domainNames.txt` into `IPAddresses.txt` **and** installs rules from the
+result, not just the file write. Invalid or empty IP replacements fail before
+changing existing rules. `-reset` detaches the chain from both OUTPUT and
+INPUT before removing it. `-list` scopes to the ADBLOCK chain instead of
+dumping every chain on the host.
 
 ## Safe usage and tests
 
@@ -73,20 +82,22 @@ powershell -NoProfile -File sandbox/run.ps1 -Assignment 7
 ```
 
 Tests cover syntax/help/invalid arguments, refusal of unprivileged firewall
-operations, scoped destination rules, deduplication, invalid replacements,
-scoped reset, mocked save/restore, and fake DNS output.
+operations, scoped OUTPUT+INPUT rules, deduplication, invalid replacements,
+`-domains` resolving and installing in one step, scoped reset, mocked
+save/restore, and fake DNS output.
 
 ## Options and data
 
-- `-domains`: resolve domainNames.txt into IPAddresses.txt.
-- `-ips`: apply IP blocking rules.
+- `-domains`: resolve domainNames.txt into IPAddresses.txt and install rules
+  from the result (OUTPUT + INPUT, see "Updates" above).
+- `-ips`: install rules from IPAddresses.txt.
 - `-save` / `-load`: save or restore a firewall snapshot.
-- `-list`: list firewall rules.
-- `-reset`: remove this script's chain and jump.
+- `-list`: list this script's rules.
+- `-reset`: remove this script's chain and both its jumps (accept all again).
 - `-help`: show usage.
 
-Data files may be beside the script or in its parent assignment directory.
-The supplied list contained 301 domain lines and 299 unique names.
+`domainNames.txt`, `IPAddresses.txt` and `adblockRules` live in this
+directory. The supplied list contains 301 domain lines and 299 unique names.
 
 ## Remaining approval and design limits
 
