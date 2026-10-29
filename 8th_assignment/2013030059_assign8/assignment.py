@@ -115,7 +115,7 @@ def inspect_artifacts(directory):
             if len(payload) >= 4 else None
         ),
         'executed': False,
-        'note': 'Stored bytes inspected only; exploit success is not established',
+        'note': 'Stored bytes inspected only; see test_exploit.py for verified exploit execution',
     }
 
 

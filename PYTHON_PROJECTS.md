@@ -47,8 +47,11 @@ the image as an ordinary user; no host installation or root attempt is made.
 - Assignment 6's live mode and assignment 7's real DNS/firewall integration are
   implemented behind opt-ins but **not tested**. No privileges are acquired.
 - Assignment 7 saves a project blocklist, not a complete host firewall snapshot.
-- Assignment 8's bytearray model is **not** a native C exploit. The original
-  exploit execution and missing shellcode test remain unapproved/incomplete.
+- Assignment 8's Python bytearray model is a teaching aid, separate from the
+  real exploit. The user approved native shellcode execution and the
+  original C exploit demonstration on 29/10/2026; both now exist
+  (`generate_exploit.py`, `shellcode_test.c`) and are verified end to end by
+  `test_exploit.py` against the actual Greeter binary.
 
 These limits follow the user's earlier safety boundary. Passing safe tests is
 not evidence that those remaining integration requirements are complete.

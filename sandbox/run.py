@@ -1,4 +1,11 @@
-"""Build and test disposable copies; never execute submitted binary artifacts."""
+"""Build and test disposable copies.
+
+Submitted binary artifacts are not executed, with one explicitly approved
+exception: assignment 8's test_exploit.py runs the supplied Greeter binary
+against its generated exploit payload, inside this network-disabled,
+non-root, UID-10001 container, to verify the buffer-overflow exploit it
+asks for actually works (see 8th_assignment/2013030059_assign8/Readme.md).
+"""
 import os
 from pathlib import Path
 import shutil
@@ -39,7 +46,9 @@ def main():
     if '--python' in sys.argv[2:]:
         command = (['python3', '-m', 'unittest', '-v', 'assignment.Tests', 'test_assignment']
                    if number == 7 else ['python3', 'assignment.py', '--self-test'])
-    elif number in (7, 8):
+    elif number == 8:
+        command = ['python3', '-m', 'unittest', '-v', 'test_safe', 'test_exploit']
+    elif number == 7:
         command = ['python3', 'test_safe.py']
     else:
         command = ['make', '-B', 'check']

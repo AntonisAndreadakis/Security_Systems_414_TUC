@@ -23,9 +23,11 @@ as UID 10001; the Windows Python installation is unchanged. Package retrieval
 occurs only during image construction; tests remain network-disabled.
 
 The real assignment-5 generated-fixture encryption/deletion/recovery lab,
-assignment-6 live capture, assignment-7 kernel firewall integration, and
-assignment-8 native exploit validation remain unverified under the existing
-approval boundary. Simulation/mocks do not prove those workflows complete.
+assignment-6 live capture, and assignment-7 kernel firewall integration
+remain unverified under the existing approval boundary; simulation/mocks do
+not prove those workflows complete. Assignment 8's native exploit is the
+one exception: the user approved it on 29/10/2026, and it is now verified
+(see the table below and [its Readme](../8th_assignment/2013030059_assign8/Readme.md)).
 
 ## Original C/shell status
 
@@ -42,8 +44,8 @@ Docker Desktop's running-container list.
 | 4 | Revised C logger/monitor; assertion-based tests passed |
 | 5 | Python `make check` passed 14 tests; C/Bash `make check` builds logger.so/acmonitor/ransomware.sh and passes a 10-step smoke test in `tests/check_legacy.sh` |
 | 6 | Four offline tests passed; supplied capture has 14,261 packets |
-| 7 | Twelve Python and seven shell mock tests passed; real firewall integration pending |
-| 8 | Three Python and seven safe native/model tests passed; original exploit deliverables pending |
+| 7 | Twelve Python and eight shell mock tests passed; real firewall integration pending |
+| 8 | Three Python model tests passed; `make check`'s seven safe tests plus the real exploit (`test_exploit.py`, via a PTY against the actual Greeter binary) all passed |
 
 Passing these tests does not certify every project as 100% complete.
 Historical submission outputs may still be stale. Old prebuilt binaries and

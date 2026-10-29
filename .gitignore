@@ -14,7 +14,8 @@
 /5th assignment/2013030059_assign5/test_aclog
 /6th assignment/2013030059_assign6/monitor
 /8th_assignment/2013030059_assign8/greeter_safe
-# Note: 8th_assignment/.../Greeter is the course-supplied target and stays tracked.
+# Note: 8th_assignment/.../Greeter and shellcode_test stay tracked (prebuilt;
+# the sandbox has no 32-bit toolchain to rebuild them, see that dir's Makefile).
 
 # Scratch directory for 5th assignment/2013030059_assign5/tests/check_legacy.sh
 .check-legacy.*
