@@ -424,6 +424,7 @@ static int stream_path(FILE *stream, char output[PATH_MAX])
 {
 	char proc_path[64];
 	ssize_t length;
+	size_t count;
 	int descriptor;
 
 	if (stream == NULL)
@@ -434,11 +435,15 @@ static int stream_path(FILE *stream, char output[PATH_MAX])
 	if (snprintf(proc_path, sizeof(proc_path), "/proc/self/fd/%d", descriptor) < 0)
 		return -1;
 	length = readlink(proc_path, output, PATH_MAX - 1);
-	/* readlink() cannot return more than the size we asked for (PATH_MAX-1),
-	 * but spell that bound out explicitly rather than relying on it. */
-	if (length < 0 || (size_t)length >= PATH_MAX)
+	if (length < 0)
 		return -1;
-	output[length] = '\0';
+	/* readlink() cannot return more than the size we asked for (PATH_MAX-1),
+	 * but spell that bound out explicitly, on the exact variable used to
+	 * index output[], rather than relying on it. */
+	count = (size_t)length;
+	if (count >= PATH_MAX)
+		return -1;
+	output[count] = '\0';
 	return 0;
 }
 
