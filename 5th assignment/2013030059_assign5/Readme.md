@@ -4,7 +4,8 @@ Andreadakis Antonios - 2013030059
 
 This assignment detects suspicious file activity from audit logs. The supported
 entry point is **`assignment.py`** on Python 3.11+; the older C, Bash, and
-`ac_system.py` implementations are retained only as historical work.
+`ac_system.py` implementations are retained only as historical work
+(`ac_system.py` and its tests now live in `archive/5th assignment/`).
 
 ## Status
 
@@ -74,8 +75,9 @@ Install `requirements.txt` first.
 
 ## Legacy implementation
 
-The unchanged legacy files are `logger.c`, `acmonitor.c`, `test_aclog.c`,
-`ac_system.py`, and the destructive exercise `ransomware.sh`. The safe
+The legacy files are `logger.c`, `acmonitor.c`, `test_aclog.c`, and the
+destructive exercise `ransomware.sh`; `ac_system.py`, its four test files and
+`run_tests.sh` were moved to `archive/5th assignment/2013030059_assign5/`. The safe
 `make check` target runs only the maintained Python regression suite; this
 legacy path is neither working nor safe. Known issues include unsafe
 shell quoting/deletion, file truncation, incompatible parsing, incorrect
@@ -87,7 +89,9 @@ establish specification compliance or validate the C deliverable. No C build
 or destructive script execution has been validated.
 
 Legacy tests previously overwrote `file0`-`file9`, `file_0`-`file_9`, and
-`test1.txt`; their former contents were not recovered.
+`test1.txt`; their former contents were not recovered. Those leftovers, the
+old `file_logging.log`, and the empty `acmonitor.c.encrypt` are now in the
+archive folder.
 
 > **Legacy safety warning:** Never run legacy tests in the submission directory;
 > use disposable copies. Do not run `ransomware.sh`, cleanup targets, or

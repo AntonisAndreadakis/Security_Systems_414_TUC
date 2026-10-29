@@ -44,7 +44,8 @@ Docker Desktop's running-container list.
 | 8 | Three Python and seven safe native/model tests passed; original exploit deliverables pending |
 
 Passing these tests does not certify every project as 100% complete.
-Historical submission outputs and prebuilt binaries may still be stale.
+Historical submission outputs may still be stale. Old prebuilt binaries and
+test leftovers were moved to [archive](../archive/README.md).
 Each assignment README describes the scope and remaining work.
 
 ## Build and run

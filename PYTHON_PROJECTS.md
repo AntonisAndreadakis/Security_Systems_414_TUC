@@ -39,7 +39,8 @@ the image as an ordinary user; no host installation or root attempt is made.
 
 - Assignment 4 audits operations through Logger.open(), not arbitrary external
   C programs. Assignment 5's maintained entry point is assignment.py; old
-  ac_system.py and its tests remain historical and should not be used.
+  ac_system.py and its tests were moved to [archive](archive/README.md) and
+  should not be used.
 - Assignment 5's ordinary simulation retains originals and writes labelled
   markers. The real generated-fixture AES-GCM encryption/deletion/recovery
   implementation is gated and **not yet executed or verified**.

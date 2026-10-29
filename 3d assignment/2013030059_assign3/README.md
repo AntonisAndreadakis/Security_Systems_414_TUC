@@ -33,9 +33,9 @@ sandbox using GCC with warnings enabled.
 ## Which sources are built?
 
 The Makefile builds **main_fixed.c**, **rsa_fixed.c**, and **rsa_fixed.h**.
-The original `main.c`, `rsa.c`, `rsa.h`, and utility files remain as historical
-reference and are not the current implementation. Do not compile those old files
-manually or use the existing prebuilt executable as a validation result.
+The original `main.c`, `rsa.c`, `rsa.h`, and utility files, and the old prebuilt
+executable, were moved to `archive/3d assignment/` at the workspace root. They
+are historical reference only and are not the current implementation.
 
 ## Updates
 
